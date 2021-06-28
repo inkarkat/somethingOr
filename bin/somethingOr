@@ -8,7 +8,7 @@
 case "$1" in
     --usage)
 	shift
-	printf 'Usage: echo COMMANDLINES | %q %s\n' "$(basename "$1")" "[-g|--memoize-group GROUP] [--bare|[--initial-status NUM] [--trailing-prompt|--no-trailing-prompt] [--no-output-no-prompt] [--no-output-no-error] [--no-success-no-count|--no-count-on N] [--exit-on-success|--exit-on-failure|--exit-on NUM] [--emulate-prompt] [--worst-status] [--comment COMMENT] [--summarize-failed ERROR-TEXT [--summarize-failed-separator SEP]]] [--timespan TIMESPAN[SUFFIX]] [--timeout TIMEOUT[SUFFIX]] [-d|--default c|y|a|l|A|d|n|o|v|N] [--recheck-at-end] [--recheck-at-checkpoints] [--skip-after-num-subsequent-fails N] [--skip-after-num-total-fails N] [--skip-after-fail-for NUMBER[SUFFIX]]] ${SOMETHING_USAGE:?} [-?|-h|--help]"
+	printf 'Usage: echo COMMANDLINES | %q %s\n' "$(basename "$1")" "[-g|--memoize-group GROUP] [--bare|[--initial-status NUM] [--trailing-prompt|--no-trailing-prompt] [--no-output-no-prompt] [--no-output-no-error] [--emulate-prompt]] [--no-success-no-count|--no-count-on N] [--exit-on-success|--exit-on-failure|--exit-on NUM] [--worst-status] [--comment COMMENT] [--summarize-failed ERROR-TEXT [--summarize-failed-separator SEP]] [--timespan TIMESPAN[SUFFIX]] [--timeout TIMEOUT[SUFFIX]] [-d|--default c|y|a|l|A|d|n|o|v|N] [--recheck-at-end] [--recheck-at-checkpoints] [--skip-after-num-subsequent-fails N] [--skip-after-num-total-fails N] [--skip-after-fail-for NUMBER[SUFFIX]]] ${SOMETHING_USAGE:?} [-?|-h|--help]"
 	echo
 	printf 'Usage: %q %s <<EOF\n  COMMANDS\nEOF\n' "$(basename "$1")" "[...] ${SOMETHING_USAGE:?}"
 	return
@@ -21,17 +21,17 @@ case "$1" in
 			    Determines the configuration directory.
     --bare		    Do not print a status line before and after
 			    launching the COMMAND.
-    --initial-status NUM    Customizations of the prompt emulation around
-    --trailing-prompt	    COMMAND; cp. runWithPrompt
+    --emulate-prompt	    Customizations of the prompt emulation around
+    --initial-status NUM    COMMAND; cp. runWithPrompt
+    --trailing-prompt
     --no-trailing-prompt
     --no-output-no-prompt
     --no-output-no-error
-    --no-success-no-count
+    --no-success-no-count   Stop on condition / summarize at end; cp. runWith
     --no-count-on N
     --exit-on-success
     --exit-on-failure	    (This also works with --bare.)
     --exit-on NUM
-    --emulate-prompt
     --worst-status
     --comment COMMENT
     --summarize-failed ERROR-TEXT
@@ -101,6 +101,7 @@ HELPTEXT
 	typeset -a ARGS=("$@")
 	isBare=
 	typeset -a bashArgs=()
+	runWithCommand=runWithPrompt
 	typeset -a runWithPromptArgs=()
 	typeset -a memoizeDecisionArgs=()
 	group=
@@ -120,7 +121,7 @@ HELPTEXT
 	{
 	    case "${ARGS[0]}" in
 		--help|-h|-\?)		    shiftArg; printLongUsage "$0"; exit 0;;
-		--bare)			    shiftArg; isBare=t;;
+		--bare)			    shiftArg; isBare=t; runWithCommand=runWith;;
 		--exit-on-failure)
 					    bashArgs+=(-e); runWithPromptArgs+=("${ARGS[0]}"); shiftArg;;
 		--trailing-prompt|--no-trailing-prompt|--no-output-no-prompt|--no-output-no-error|--no-success-no-count|--exit-on-success|--emulate-prompt|--worst-status)
@@ -151,7 +152,6 @@ HELPTEXT
 		echo >&2 'Warning: Number of subsequent fails is larger than the number of total fails and will never be reached.'
 	    fi
 	    [ "$group" ] || group="$(basename -- "$0").$PPID"
-	    [ ${#runWithPromptArgs[@]} -eq 0 ] && runWithPromptArgs=(--no-trailing-prompt)
 	}
 	return
 	;;
@@ -269,10 +269,11 @@ memoizeDecision "${memoizeDecisionArgs[@]}" --memoize-group "$group" --subject "
 
 runInput()
 {
-    if [ "$isBare" ]; then
+    if [ "$isBare" ] && [ ${#runWithPromptArgs[@]} -eq 0 -o "${#runWithPromptArgs[*]}" = --exit-on-failure ]; then
 	bash "${bashArgs[@]}" -
     else
-	runWithPrompt "${runWithPromptArgs[@]}"
+	[ ${#runWithPromptArgs[@]} -eq 0 ] && runWithPromptArgs=(--no-trailing-prompt)
+	${runWithCommand:?} "${runWithPromptArgs[@]}"
     fi
 }
 eval '"${checkpointPrePipeline[@]}"' "${checkpointPrePipeline:+|}" runInput
