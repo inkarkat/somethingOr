@@ -29,7 +29,7 @@ case "$1" in
     --no-success-no-count
     --no-count-on N
     --exit-on-success
-    --exit-on-failure
+    --exit-on-failure	    (This also works with --bare.)
     --exit-on NUM
     --emulate-prompt
     --worst-status
@@ -100,6 +100,7 @@ HELPTEXT
 	# set -- "${ARGS[@]}"
 	typeset -a ARGS=("$@")
 	isBare=
+	typeset -a bashArgs=()
 	typeset -a runWithPromptArgs=()
 	typeset -a memoizeDecisionArgs=()
 	group=
@@ -120,10 +121,12 @@ HELPTEXT
 	    case "${ARGS[0]}" in
 		--help|-h|-\?)		    shiftArg; printLongUsage "$0"; exit 0;;
 		--bare)			    shiftArg; isBare=t;;
-		--trailing-prompt|--no-trailing-prompt|--no-output-no-prompt|--no-output-no-error|--no-success-no-count|--exit-on-success|--exit-on-failure|--emulate-prompt|--worst-status)
-				runWithPromptArgs+=("${ARGS[0]}"); shiftArg;;
+		--exit-on-failure)
+					    bashArgs+=(-e); runWithPromptArgs+=("${ARGS[0]}"); shiftArg;;
+		--trailing-prompt|--no-trailing-prompt|--no-output-no-prompt|--no-output-no-error|--no-success-no-count|--exit-on-success|--emulate-prompt|--worst-status)
+					    runWithPromptArgs+=("${ARGS[0]}"); shiftArg;;
 		--initial-status|--no-count-on|--exit-on|--comment|--summarize-failed|--summarize-failed-separator)
-				runWithPromptArgs+=("${ARGS[0]}" "${ARGS[1]}"); shiftArg; shiftArg;;
+					    runWithPromptArgs+=("${ARGS[0]}" "${ARGS[1]}"); shiftArg; shiftArg;;
 		--timespan|--timeout|--default|-d)
 					    memoizeDecisionArgs+=("${ARGS[0]}" "${ARGS[1]}"); shiftArg; shiftArg;;
 		--memoize-group|-g)	    shiftArg; group="${ARGS[0]}"; shiftArg;;
@@ -267,7 +270,7 @@ memoizeDecision "${memoizeDecisionArgs[@]}" --memoize-group "$group" --subject "
 runInput()
 {
     if [ "$isBare" ]; then
-	bash -
+	bash "${bashArgs[@]}" -
     else
 	runWithPrompt "${runWithPromptArgs[@]}"
     fi
