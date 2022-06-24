@@ -159,7 +159,7 @@ esac
 
 database()
 {
-    miniDB --schema 'SUBJECT SUBSEQUENT_FAILS TOTAL_FAILS' --namespace succeedsOr --table "$group" "$@"
+    miniDB --schema 'SUBJECT SUBSEQUENT_FAILS TOTAL_FAILS' --namespace "${SOMETHING_STATE:?}sOr"  --table "$group" "$@"
 }
 
 isSkipAfterNum()
