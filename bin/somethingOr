@@ -8,7 +8,7 @@
 case "$1" in
     --usage)
 	shift
-	printf 'Usage: echo COMMANDLINES | %q %s\n' "$(basename "$1")" "[-g|--memoize-group GROUP] [--bare|[--initial-status NUM] [--trailing-prompt|--no-trailing-prompt] [--no-output-no-prompt] [--no-output-no-error] [--emulate-prompt]] [--no-success-no-count|--no-count-on N] [--exit-on-success|--exit-on-failure|--exit-on NUM] [--worst-status] [--comment COMMENT] [--summarize-failed ERROR-TEXT [--summarize-failed-separator SEP]] [--timespan TIMESPAN[SUFFIX]] [--timeout TIMEOUT[SUFFIX]] [-d|--default c|y|a|l|A|d|n|o|v|N] [--recheck-at-end] [--recheck-at-checkpoints] [--skip-after-num-subsequent-fails N] [--skip-after-num-total-fails N] [--skip-after-fail-for NUMBER[SUFFIX]]] ${SOMETHING_USAGE:?} [-?|-h|--help]"
+	printf 'Usage: echo COMMANDLINES | %q %s\n' "$(basename "$1")" "[-g|--memoize-group GROUP] [--bare|$(runWithPrompt --get-short-usage 2>/dev/null)] [--timespan TIMESPAN[SUFFIX]] [--timeout TIMEOUT[SUFFIX]] [-d|--default c|y|a|l|A|d|n|o|v|N] [--recheck-at-end] [--recheck-at-checkpoints] [--skip-after-num-subsequent-fails N] [--skip-after-num-total-fails N] [--skip-after-fail-for NUMBER[SUFFIX]]] ${SOMETHING_USAGE:?} [-?|-h|--help]"
 	echo
 	printf 'Usage: %q %s <<EOF\n  COMMANDS\nEOF\n' "$(basename "$1")" "[...] ${SOMETHING_USAGE:?}"
 	return
@@ -21,21 +21,9 @@ case "$1" in
 			    Determines the configuration directory.
     --bare		    Do not print a status line before and after
 			    launching the COMMAND.
-    --emulate-prompt	    Customizations of the prompt emulation around
-    --initial-status NUM    COMMAND; cp. runWithPrompt
-    --trailing-prompt
-    --no-trailing-prompt
-    --no-output-no-prompt
-    --no-output-no-error
-    --no-success-no-count   Stop on condition / summarize at end; cp. runWith
-    --no-count-on N
-    --exit-on-success
-    --exit-on-failure	    (This also works with --bare.)
-    --exit-on NUM
-    --worst-status
-    --comment COMMENT
-    --summarize-failed ERROR-TEXT
-    --summarize-failed-separator SEP
+HELPTEXT
+    runWithPrompt --get-long-usage 2>/dev/null
+    cat <<HELPTEXT
     --timespan TIMESPAN[SUFFIX]
 			    Recall a previous answer if a previous invocation
 			    (with an answer of yes/any/no/none) had happened
@@ -126,7 +114,7 @@ HELPTEXT
 					    bashArgs+=(-e); runWithPromptArgs+=("${ARGS[0]}"); shiftArg;;
 		--trailing-prompt|--no-trailing-prompt|--no-output-no-prompt|--no-output-no-error|--no-success-no-count|--exit-on-success|--emulate-prompt|--worst-status)
 					    runWithPromptArgs+=("${ARGS[0]}"); shiftArg;;
-		--initial-status|--no-count-on|--exit-on|--comment|--summarize-failed|--summarize-failed-separator)
+		--initial-status|--no-count-on|--exit-on|--exit-unless|--comment|--summarize-failed|--summarize-failed-separator)
 					    runWithPromptArgs+=("${ARGS[0]}" "${ARGS[1]}"); shiftArg; shiftArg;;
 		--timespan|--timeout|--default|-d)
 					    memoizeDecisionArgs+=("${ARGS[0]}" "${ARGS[1]}"); shiftArg; shiftArg;;
