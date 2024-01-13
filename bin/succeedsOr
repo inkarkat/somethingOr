@@ -35,7 +35,6 @@ HELPTEXT
     source somethingOr --long-usage "$1"
 }
 
-isNeedEval=
 commandName=
 typeset -a commands=()
 source somethingOr --init-parse "$@"
@@ -43,21 +42,17 @@ while [ ${#ARGS[@]} -ne 0 ]
 do
     case "${ARGS[0]}" in
 	--command-name|-n)	    shiftArg; commandName="${ARGS[0]}"; shiftArg;;
-	--command|-c)		    shiftArg; commands+=(${commands:+;} "${ARGS[0]}"); isNeedEval=t; shiftArg;;
+	--command|-c)		    shiftArg; commands+=(${commands:+;} "${ARGS[0]}"); shiftArg;;
 	*)			    somethingParse || break;;
     esac
 done
 somethingVerifyParse
 set -- "${ARGS[@]}"
 if [ $# -ne 0 ]; then
-    if [ "$isNeedEval" ]; then
-	# Combine --command and SIMPLECOMMAND; need to quote SIMPLECOMMAND to
-	# undo the effects of eval.
-	printf -v quotedSimpleCommand '%q ' "$@"
-	commands+=(${commands:+;} "${quotedSimpleCommand% }")
-    else
-	commands=("$@")
-    fi
+    # Combine --command and SIMPLECOMMAND; need to quote SIMPLECOMMAND to
+    # undo the effects of eval.
+    printf -v quotedSimpleCommand '%q ' "$@"
+    commands+=(${commands:+;} "${quotedSimpleCommand% }")
 fi
 if [ ${#commands[@]} -eq 0 ]; then
     echo 'ERROR: No COMMAND(s) specified; need to pass -c|--command "COMMANDLINE", or SIMPLECOMMAND.'
@@ -67,19 +62,11 @@ if [ ${#commands[@]} -eq 0 ]; then
 fi >&2
 if [ "$isRecheckAtCheckpoints" ]; then
     printf -v quotedTestCommandLine '%q ' "${commands[@]}"
-    checkpointPrePipeline=(sed -e "1i\\checkpoint() { ${isNeedEval:+eval }${quotedTestCommandLine//\\/\\\\}>/dev/null 2>&1 && exit 0; }")
+    checkpointPrePipeline=(sed -e "1i\\checkpoint() { eval ${quotedTestCommandLine//\\/\\\\}>/dev/null 2>&1 && exit 0; }")
 fi
 [ "$commandName" ] || commandName="${commands[*]}"
 
-check()
-(
-    if [ "$isNeedEval" ]; then
-	eval "${commands[@]}"
-    else
-	"${commands[@]}"
-    fi >/dev/null 2>&1
-)
-check; status=$?
+(eval "${commands[@]}" >/dev/null 2>&1); status=$?
 
 
 SOMETHING_SUBJECT="$commandName"
